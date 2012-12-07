@@ -1,19 +1,26 @@
 package com.kreuz45.plugins;
-import hudson.Launcher;
 import hudson.Extension;
-import hudson.util.FormValidation;
-import hudson.model.AbstractBuild;
+import hudson.Launcher;
 import hudson.model.BuildListener;
+import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.tasks.Builder;
 import hudson.tasks.BuildStepDescriptor;
-import net.sf.json.JSONObject;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.QueryParameter;
+import hudson.tasks.Builder;
+import hudson.util.FormValidation;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 
 import javax.servlet.ServletException;
-import java.io.IOException;
+
+import net.sf.json.JSONObject;
+
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
 
 /**
  * Sample {@link Builder}.
@@ -48,11 +55,38 @@ public class HelloWorldBuilder extends Builder {
     public String getName() {
         return name;
     }
+    
+    private String readFromFile(File file) {
+    	try {
+			FileReader changeLogReader = new FileReader(file);
+			BufferedReader b = new BufferedReader(changeLogReader);
+			StringBuffer buf = new StringBuffer();
+			while(true) {
+				String line = b.readLine();
+				if (line == null) break;
+				buf.append(line);
+			}
+			b.close();
+			return buf.toString();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			return null;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}
+    }
 
     @Override
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
         // This is where you 'build' the project.
         // Since this is a dummy, we just say 'hello world' and call that a build.
+    	
+    	String buildBaseDir = build.getArtifactsDir().getParent();
+    	File changeLog = new File(buildBaseDir + "/changelog.xml");
+    	String changeLogBody = this.readFromFile(changeLog);
+    	
+    	listener.getLogger().println("changelog.xml is: " + changeLogBody);
 
         // This also shows how you can consult the global configuration of the builder
         if (getDescriptor().getUseFrench())
