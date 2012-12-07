@@ -12,9 +12,10 @@ import hudson.util.FormValidation;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -67,8 +68,7 @@ public class HelloWorldBuilder extends Builder {
     private ArrayList<String> readFromFile(File file) {
     	try {
     		ArrayList<String> lines = new ArrayList<String>();
-			FileReader changeLogReader = new FileReader(file);
-			BufferedReader b = new BufferedReader(changeLogReader);
+			BufferedReader b = new BufferedReader(new InputStreamReader(new FileInputStream(file),"UTF-8"));
 			while(true) {
 				String line = b.readLine();
 				lines.add(line);
@@ -98,6 +98,9 @@ public class HelloWorldBuilder extends Builder {
     	
     	// Parse
     	
+    	ArrayList<String> commits = new ArrayList<String>();
+    	StringBuffer buf = null;
+    	String currentCommitter = null;
     	for (String line : changeLogLines) {
         	if (line != null) {
         		
@@ -108,6 +111,11 @@ public class HelloWorldBuilder extends Builder {
 		        	Matcher m = p.matcher(line);
 		        	if (m.find()){
 		        	  listener.getLogger().println(m.group(1));
+		        	  currentCommitter = m.group(1);
+		        	  if (buf != null) {
+		        		  commits.add(buf.toString() + " - " + currentCommitter);
+		        	  }
+		        	  buf = new StringBuffer();
 		        	}
         		}
         		
@@ -115,13 +123,21 @@ public class HelloWorldBuilder extends Builder {
         		{
         			if (line.startsWith("    ")) {
         				listener.getLogger().println(line);
+        				buf.append(line.substring(4, line.length()));
         			}
         		}
         	}
     	}
+    	if (buf != null) {
+    		commits.add(buf.toString() + " - " + currentCommitter);
+    	}
+    	String modifiedLog = StringUtils.arrayToDelimitedString(commits.toArray(), "\n----\n");
+    	
+    	listener.getLogger().println("MSG:");
+    	listener.getLogger().println(modifiedLog);
     	
         EnvAction envAction = new EnvAction();
-//        envAction.add("CHANGELOG", changeLogBody);
+        envAction.add("CHANGELOG", modifiedLog);
         build.addAction(envAction);
         
         // This also shows how you can consult the global configuration of the builder
