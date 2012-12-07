@@ -99,13 +99,24 @@ public class HelloWorldBuilder extends Builder {
     	// Parse
     	
     	for (String line : changeLogLines) {
-    		String regex = "committer (.*?) <";
-        	Pattern p = Pattern.compile(regex);
         	if (line != null) {
-	        	Matcher m = p.matcher(line);
-	        	if (m.find()){
-	        	  listener.getLogger().println(m.group(1));
-	        	}
+        		
+        		// committer?
+        		{
+	        		String regex = "committer (.*?) <";
+	            	Pattern p = Pattern.compile(regex);
+		        	Matcher m = p.matcher(line);
+		        	if (m.find()){
+		        	  listener.getLogger().println(m.group(1));
+		        	}
+        		}
+        		
+        		// commit msg?
+        		{
+        			if (line.startsWith("    ")) {
+        				listener.getLogger().println(line);
+        			}
+        		}
         	}
     	}
     	
