@@ -15,8 +15,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.servlet.ServletException;
 
@@ -25,6 +28,7 @@ import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
+import org.springframework.util.StringUtils;
 
 /**
  * Sample {@link Builder}.
@@ -60,18 +64,18 @@ public class HelloWorldBuilder extends Builder {
         return name;
     }
     
-    private String readFromFile(File file) {
+    private ArrayList<String> readFromFile(File file) {
     	try {
+    		ArrayList<String> lines = new ArrayList<String>();
 			FileReader changeLogReader = new FileReader(file);
 			BufferedReader b = new BufferedReader(changeLogReader);
-			StringBuffer buf = new StringBuffer();
 			while(true) {
 				String line = b.readLine();
+				lines.add(line);
 				if (line == null) break;
-				buf.append(line);
 			}
 			b.close();
-			return buf.toString();
+			return lines;
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			return null;
@@ -88,12 +92,25 @@ public class HelloWorldBuilder extends Builder {
     	
     	String buildBaseDir = build.getArtifactsDir().getParent();
     	File changeLog = new File(buildBaseDir + "/changelog.xml");
-    	String changeLogBody = this.readFromFile(changeLog);
+    	ArrayList<String> changeLogLines = this.readFromFile(changeLog);
     	
-    	listener.getLogger().println("changelog.xml is: " + changeLogBody);
+//    	listener.getLogger().println("changelog.xml is: " + changeLogBody);
+    	
+    	// Parse
+    	
+    	for (String line : changeLogLines) {
+    		String regex = "committer (.*?) <";
+        	Pattern p = Pattern.compile(regex);
+        	if (line != null) {
+	        	Matcher m = p.matcher(line);
+	        	if (m.find()){
+	        	  listener.getLogger().println(m.group(1));
+	        	}
+        	}
+    	}
     	
         EnvAction envAction = new EnvAction();
-        envAction.add("CHANGELOG", changeLogBody);
+//        envAction.add("CHANGELOG", changeLogBody);
         build.addAction(envAction);
         
         // This also shows how you can consult the global configuration of the builder
