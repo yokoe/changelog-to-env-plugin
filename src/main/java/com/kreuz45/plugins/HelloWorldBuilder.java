@@ -1,7 +1,9 @@
 package com.kreuz45.plugins;
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.BuildListener;
+import hudson.model.EnvironmentContributingAction;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.tasks.BuildStepDescriptor;
@@ -13,6 +15,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.servlet.ServletException;
 
@@ -87,7 +91,11 @@ public class HelloWorldBuilder extends Builder {
     	String changeLogBody = this.readFromFile(changeLog);
     	
     	listener.getLogger().println("changelog.xml is: " + changeLogBody);
-
+    	
+        EnvAction envAction = new EnvAction();
+        envAction.add("CHANGELOG", changeLogBody);
+        build.addAction(envAction);
+        
         // This also shows how you can consult the global configuration of the builder
         if (getDescriptor().getUseFrench())
             listener.getLogger().println("Bonjour, "+name+"!");
@@ -173,5 +181,21 @@ public class HelloWorldBuilder extends Builder {
             return useFrench;
         }
     }
+    private static class EnvAction implements EnvironmentContributingAction {
+        private transient Map<String,String> data = new HashMap<String,String>();
+
+        private void add(String key, String value) {
+            if (data==null) return;
+            data.put(key, value);
+        }
+
+        public void buildEnvVars(AbstractBuild<?,?> build, EnvVars env) {
+            if (data!=null) env.putAll(data);
+        }
+
+        public String getIconFileName() { return null; }
+        public String getDisplayName() { return null; }
+        public String getUrlName() { return null; }
+    } 
 }
 
